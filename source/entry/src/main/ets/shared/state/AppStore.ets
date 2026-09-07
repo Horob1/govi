@@ -1,5 +1,5 @@
 ﻿import { Transaction } from "../domain/model/Transaction";
-import { transactionUseCase } from "../domain/usecase/TransactionUseCase";
+import { MonthlySummary, transactionUseCase } from "../domain/usecase/TransactionUseCase";
 import { formatMonth } from "../utils/DateUtils";
 
 @Observed
@@ -17,7 +17,7 @@ export class AppStore {
   async load(): Promise<void> {
     this.isLoading = true;
     try {
-      const s: { income: number, expense: number, balance: number, list: Transaction[] } =
+      const s: MonthlySummary =
         await transactionUseCase.monthlySummary(this.currentMonth);
       this.transactions = s.list;
       this.income = s.income;

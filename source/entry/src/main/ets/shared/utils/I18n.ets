@@ -143,5 +143,5 @@ export function getString(key: string): string {
 
 export function r(key: string): Resource {
   const value: string = t(key.replace("app.string.", ""));
-  return value as unknown as Resource;
+  return value as Object as Resource;
 }

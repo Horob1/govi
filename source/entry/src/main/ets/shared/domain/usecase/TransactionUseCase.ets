@@ -3,6 +3,13 @@ import { transactionRepository } from "../../data/TransactionRepositoryImpl";
 import { formatMonth } from "../../utils/DateUtils";
 import { t } from "../../utils/I18n";
 
+export interface MonthlySummary {
+  income: number;
+  expense: number;
+  balance: number;
+  list: Transaction[];
+}
+
 export class TransactionUseCase {
   async list(): Promise<Transaction[]> {
     return await transactionRepository.getAll();
@@ -24,7 +31,7 @@ export class TransactionUseCase {
     await transactionRepository.remove(id);
   }
 
-  async monthlySummary(month: string): Promise<{ income: number, expense: number, balance: number, list: Transaction[] }> {
+  async monthlySummary(month: string): Promise<MonthlySummary> {
     const all: Transaction[] = await transactionRepository.getAll();
     const list: Transaction[] = all.filter((tx: Transaction) => formatMonth(tx.date) === month);
     let income: number = 0;
@@ -38,7 +45,13 @@ export class TransactionUseCase {
         expense += tx.amount;
       }
     }
-    return { income: income, expense: expense, balance: income - expense, list: list };
+    const result: MonthlySummary = {
+      income: income,
+      expense: expense,
+      balance: income - expense,
+      list: list
+    };
+    return result;
   }
 }
 

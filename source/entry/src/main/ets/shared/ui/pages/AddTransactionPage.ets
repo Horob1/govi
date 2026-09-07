@@ -7,6 +7,11 @@ import { AnalyticsService } from "../../../platform/AnalyticsService/Service";
 import { t } from "../../utils/I18n";
 import { Category } from "../../domain/model/Category";
 
+interface AddTransactionEventParams {
+  amount: number;
+  type: TransactionType;
+}
+
 @Entry
 @Component
 struct AddTransactionPage {
@@ -131,7 +136,8 @@ struct AddTransactionPage {
     this.isSaving = true;
     try {
       await transactionUseCase.add(amount, this.selectedCatId, this.note, this.txType, Date.now());
-      AnalyticsService.trackEvent("add_transaction", { amount: amount, type: this.txType });
+      const evt: AddTransactionEventParams = { amount: amount, type: this.txType };
+      AnalyticsService.trackEvent("add_transaction", evt);
       router.back();
     } finally {
       this.isSaving = false;

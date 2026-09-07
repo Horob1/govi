@@ -20,19 +20,17 @@ export struct TransactionCard {
   }
 
   build(): void {
-    const cat: Category = this.getCategory();
-    const isIncome: boolean = this.tx.type === TransactionType.INCOME;
     Row() {
-      Text(cat.icon)
+      Text(this.getCategory().icon)
         .fontSize(22)
         .width(42)
         .height(42)
         .textAlign(TextAlign.Center)
-        .backgroundColor(cat.color + "22")
+        .backgroundColor(this.getCategory().color + "22")
         .borderRadius(10)
         .padding(6)
       Column() {
-        Text(cat.getName())
+        Text(this.getCategory().getName())
           .fontSize(14)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.text)
@@ -47,10 +45,10 @@ export struct TransactionCard {
       .alignItems(HorizontalAlign.Start)
 
       Column() {
-        Text((isIncome ? "+" : "-") + formatCurrency(this.tx.amount))
+        Text((this.tx.type === TransactionType.INCOME ? "+" : "-") + formatCurrency(this.tx.amount))
           .fontSize(14)
           .fontWeight(FontWeight.Bold)
-          .fontColor(isIncome ? AppColors.success : AppColors.danger)
+          .fontColor(this.tx.type === TransactionType.INCOME ? AppColors.success : AppColors.danger)
         Text(formatDate(this.tx.date))
           .fontSize(11)
           .fontColor(AppColors.textSecondary)
