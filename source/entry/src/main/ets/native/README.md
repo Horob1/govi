@@ -7,12 +7,15 @@ This folder documents HarmonyOS-native capabilities used via `platform/*` and th
 
 ## Dependency Decision (per DEPENDENCIES.md)
 
-No external library was installed for native capabilities.
-All native needs are covered by HarmonyOS SDK / ArkUI / ArkTS.
+Native capabilities use HarmonyOS SDK / ArkUI / ArkTS directly.
 Small utilities (Logger, Uuid, Validation, ApiClient, DateUtils) are owned in `shared/utils/` - 20 lines cheaper than a permanent dep.
 
-`oh-package.json5` keeps `dependencies: {}`.
-Only `devDependencies` are `@ohos/hypium` and `@ohos/hamock` for tests.
+Cross-platform exceptions that need a library (ArkTS Image cannot fully render SVG 1.1, native requires full spec):
+
+* SVG: `@ohos/svg` ^2.2.3 (OpenHarmony-SIG/ohos_svg, Apache 2.0, API12, cross via ArkTS pure - no BridgePlugin needed) - `ohpm install @ohos/svg`. Covers 3 native types that Image cannot: gradients, masks, image-in-svg. Used via `shared/ui/components/SvgIcon.ets` -> `SVGImageView` reading `resources/rawfile/*.svg` through `GlobalContext` set in `EntryAbility.onCreate`.
+* Icon: no separate ohpm icon pack installed. Primary icon system is ONE style per DEPENDENCIES.md 3.2: HarmonyOS `SymbolGlyph` (4000+ system symbols, vector, theme-aware, no install) + owned SVG assets rendered by `@ohos/svg`. `Category.icon` currently Unicode emoji for stub, upgrade to SVG via `SvgIcon` when assets ready. No FontAwesome/Material/Lucide mix.
+
+`source/oh-package.json5` now has `dependencies: { "@ohos/svg": "^2.2.3" }` + `devDependencies` `hypium/hamock`. `entry/oh-package.json5` stays empty (transitive via `source`).
 
 ## Native Capabilities - Owner and Status
 
@@ -65,23 +68,32 @@ Registration:
 * `PermissionService.request` - use `common.getContext()` + `atManager.requestPermissionsFromUser`.
 * All stubs log via `Logger` so behavior is observable without context.
 
-## What Is NOT Installed (per DEPENDENCIES.md Section 6)
+## What Is Installed vs Owned (per DEPENDENCIES.md Section 6-7)
 
-`lodash`, `dayjs`, `moment`, `axios`, `firebase`, `redux`, `framer-motion` etc. are intentionally not installed.
-`ApiClient` owns HTTP, `DateUtils` owns date/time, `Uuid` owns IDs, `Validation` owns forms, `Logger` owns logging.
-Add a library only when a feature proves native + 20 lines cannot solve it, checked for ArkTS compatibility, maintenance, size, and removability.
+Installed cross libs (commonly used, ArkTS compatible, maintained, small, removable):
 
-## Cross-Platform Layer (owned, no external dep)
+* `@ohos/svg` ^2.2.3 - SVG 1.1 parsing/rendering, ArkTS pure, cross via ArkUI-X, 18 versions, Apache 2.0. Needed because ArkTS `Image` cannot render gradients/masks/image-in-svg natively.
+* `@ohos/axios` ^2.2.15 - promise HTTP, OpenHarmony Axios adapt, 43 versions, MIT, cross (no bridge). Installed as cross alternative to owned `ApiClient` (native `http` kit). Use `AxiosClient` for cross, `ApiClient` for native fallback.
+* `dayjs` ^1.11.13 - 2KB immutable date/time, MIT, cross. Installed as optional for timezone/duration/recurring per spec 3.5. `DateUtils` remains primary for simple format/compare.
 
-* UI: `ArkUI` only (`shared/ui/components`, `AppTheme`)
-* Icon: project SVG assets + `Category.icon` Unicode (one primary style)
-* SVG: static `resources/base/media` assets
-* Animation: `ArkUI` `animation` / `transition` APIs
-* Date/Time: `shared/utils/DateUtils`
-* UUID: `shared/utils/Uuid` + `Transaction.newTransactionId`
-* Network: `shared/utils/ApiClient` (+ `platform/NetworkService`)
-* Validation: `shared/utils/Validation`
-* Logging: `shared/utils/Logger`
+Owned (20 lines cheaper than dep, no install):
+
+* `Uuid`, `Validation`, `Logger`, `DateUtils` fallback, debounce/throttle - never installed `lodash`, `moment`, `uuid` lib.
+
+Not installed: `firebase`, `redux`, `zustand`, `framer-motion`, `react-native-*`, `lodash` etc. - add only when feature proves native + owned cannot solve, checked for ArkTS compatibility, maintenance, bundle cost, and removability.
+
+## Cross-Platform Layer
+
+* UI: `ArkUI` only (`shared/ui/components`, `AppTheme`) - no external UI framework (spec 3.1)
+* Icon: `SymbolGlyph` (4000+ HarmonyOS symbols, vector, theme-aware) + owned SVG assets via `SvgIcon` (`@ohos/svg`) - one primary style (spec 3.2)
+* SVG: `@ohos/svg` ^2.2.3 cross (ArkTS pure, no bridge) via `shared/ui/components/SvgIcon.ets` for full SVG 1.1 (gradients/masks). Static assets in `resources/rawfile/*.svg` (spec 3.3)
+* Animation: `ArkUI` `animation` / `transition` APIs (spec 3.4) - no `framer-motion`
+* Date/Time: `shared/utils/DateUtils` native + `dayjs` ^1.11.13 cross optional for timezone/duration/recurring (spec 3.5) - `formatDateDayjs` demonstrates
+* UUID: `shared/utils/Uuid` owned (spec 3.6) - no `uuid` lib install
+* Network: `shared/utils/ApiClient` (HarmonyOS `http` kit, needs bridge note) + `shared/utils/AxiosClient` cross via `@ohos/axios` ^2.2.15 (OpenHarmony Axios adapt, promise-based, no bridge) (spec 3.7)
+* Validation: `shared/utils/Validation` owned (spec 3.8)
+* Logging: `shared/utils/Logger` owned wrapper around `hilog` (spec 3.9)
+* Utilities: owned debounce/throttle in `shared/utils` - no `lodash` (spec 3.10)
 
 ## References
 
